@@ -23,7 +23,6 @@ do
 
 			better_results=$(echo "scale=4; ${answer_Gbps} > ${prior_best_result_Gbps}" | bc -l)
 			if [ 1 -eq  $better_results ]; then
-				echo "Inside if statement"
 				prior_best_result_Gbps=$answer_Gbps
 				best_result="bw_tcp -m $i -P $j 10.0.1.21:  $answer_MBps MBps ..... $answer_Gbps Gbps"
 			fi
