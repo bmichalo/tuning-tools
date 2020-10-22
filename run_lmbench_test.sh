@@ -43,7 +43,6 @@ echo "--------------------------------------------------------------------------
 
 sample_set_array=()
 initialize_prior_best_result_Gbps=1
-initialize_prior_worst_result_Gbps=1
 prior_best_result_Gbps=0
 prior_worst_result_Gbps=0
 worst_results=0
@@ -59,24 +58,18 @@ do
 
 
 	if [ "$initialize_prior_best_result_Gbps" -eq 1 ]; then
-		echo "Inside initialization if statement"
 		prior_best_result_Gbps=$answer_Gbps
 		prior_worst_result_Gbps=$answer_Gbps
 		initialize_prior_best_result_Gbps=0
-		initialize_prior_worst_result_Gbps=0
 	fi
 
 	better_results=$(echo "scale=4; ${answer_Gbps} > ${prior_best_result_Gbps}" | bc -l)
-	echo "better_results = $better_results, answer_Gbps = $answer_Gbps, prior_best_result_Gbps = $prior_best_result_Gbps"
 	if [ 1 -eq  $better_results ]; then
-		echo "Setting new best_result"
 		prior_best_result_Gbps=$answer_Gbps
 	fi
 
 	worst_results=$(echo "scale=4; ${answer_Gbps} < ${prior_worst_result_Gbps}" | bc -l)
-	echo "worst_results = $worst_results, answer_Gbps = $answer_Gbps, prior_worst_result_Gbps = $prior_worst_result_Gbps"
 	if [ 1 -eq  $worst_results ]; then
-		echo "Setting new worst_result"
 		prior_worst_result_Gbps=$answer_Gbps
 	fi
 
@@ -87,17 +80,15 @@ do
 	fi
 done
 
-echo "sample_set_array = ${sample_set_array[*]}"
-echo "size of sample_set_array = ${#sample_set_array[@]}"
-
-
+#
+# Now calculate the mean and standared deviation of the population set
+#
 total=0
 
 #
 # 1.  Find the mean
 #
 sample_set_size=${#sample_set_array[@]}
-echo "sample set size = ${#sample_set_array[@]}"
 
 for throughput_result in "${sample_set_array[@]}"
 do
@@ -105,8 +96,6 @@ do
 done
 
 mean=$(echo "scale=4;${total}/${sample_set_size}" | bc -l)
-
-echo "mean = $mean"
 
 
 #
@@ -116,15 +105,12 @@ squared_distance_from_mean_array=()
 
 for (( sample_set_element=0; sample_set_element<${#sample_set_array[@]}; sample_set_element++ )); do
 	squared_set_element=$(echo "scale=4;(${sample_set_array[$sample_set_element]}-${mean}) * (${sample_set_array[$sample_set_element]}-${mean})" | bc -l)
-	echo "$sample_set_element"
 	if [ $sample_set_element -eq 0 ]; then
 		squared_distance_from_mean_array=(${squared_set_element})
 	else
 		squared_distance_from_mean_array=(${squared_distance_from_mean_array[@]} ${squared_set_element})
 	fi
 done
-
-echo "${squared_distance_from_mean_array[*]}"
 
 #
 # Sum the values from step 2
@@ -134,22 +120,22 @@ for (( i=0; i<${#squared_distance_from_mean_array[@]}; i++ )); do
 	total_sum_of_squares=$(echo "scale=4;${total_sum_of_squares} + ${squared_distance_from_mean_array[$i]}" | bc -l)
 done
 
-echo "total_sum_of_squares = $total_sum_of_squares"
-echo "sample_set_size = $sample_set_size"
 #
 # Divide the total sum of the squares by the number of elements 
 #
 sum_squares_div_sample_set_size=$(echo "scale=4;${total_sum_of_squares} / ${sample_set_size}" | bc -l)
-echo "sum of the squares divided by the samples set size = $sum_squares_div_sample_set_size"
 
 #
 # Take square root to finally find standard deviation
 #
 std_dev=$(echo "scale=4;sqrt($sum_squares_div_sample_set_size)" | bc -l)
 
-echo "Best results = $prior_best_result_Gbps Gbps"
-echo "Worst results = $prior_worst_result_Gbps Gbps"
-echo "mean = $mean Gbps"
-echo "std_dev = $std_dev Gbps"
-
-
+printf "\n"
+printf "%s\n"              "*********************************"
+printf "%s\n"              "********* Final Results *********"
+printf "%s\n"              "*********************************"
+printf "%-10s %8.4f %s\n" "Best results ....." $prior_best_result_Gbps "Gbps"
+printf "%-10s %8.4f %s\n" "Worst results ...." $prior_worst_result_Gbps "Gbps"
+printf "%-10s %8.4f %s\n" "Mean ............." $mean "Gbps"
+printf "%-10s %8.4f %s\n" "Std dev .........." $std_dev "Gbps"
+printf "\n"
