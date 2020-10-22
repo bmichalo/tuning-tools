@@ -1,6 +1,8 @@
 #!/bin/bash
-parallelism=(1 8 16 32)
-message_size=(8192 16384 65536)
+#parallelism=(1 8 16 32)
+#message_size=(8192 16384 65536)
+parallelism=(1 8)
+message_size=(8192 16384)
 prior_best_result_Gbps=0
 initialize_prior_best_result_Gbps=1
 
@@ -32,9 +34,7 @@ do
 	done
 done
 
-echo ""
-echo ""
-echo "==========================================="
+echo "========================================================================================="
 echo "Best results:  $best_result "
 echo ""
 echo ""
@@ -42,6 +42,12 @@ echo "Running 3 tests using message size = $best_message_size, parallelism = $be
 echo "-----------------------------------------------------------------------------------------"
 
 sample_set_array=()
+initialize_prior_best_result_Gbps=1
+initialize_prior_worst_result_Gbps=1
+prior_best_result_Gbps=0
+prior_worst_result_Gbps=0
+worst_results=0
+better_results=0
 
 for k in {1..3}
 do
@@ -51,7 +57,30 @@ do
 	answer_Gbps=$(echo "scale=4;${answer_MBps} * 8/10^3" | bc -l)
 	echo "$answer_Gbps Gbps"
 
-	if [ $k -eq 0 ]; then
+
+	if [ "$initialize_prior_best_result_Gbps" -eq 1 ]; then
+		echo "Inside initialization if statement"
+		prior_best_result_Gbps=$answer_Gbps
+		prior_worst_result_Gbps=$answer_Gbps
+		initialize_prior_best_result_Gbps=0
+		initialize_prior_worst_result_Gbps=0
+	fi
+
+	better_results=$(echo "scale=4; ${answer_Gbps} > ${prior_best_result_Gbps}" | bc -l)
+	echo "better_results = $better_results, answer_Gbps = $answer_Gbps, prior_best_result_Gbps = $prior_best_result_Gbps"
+	if [ 1 -eq  $better_results ]; then
+		echo "Setting new best_result"
+		prior_best_result_Gbps=$answer_Gbps
+	fi
+
+	worst_results=$(echo "scale=4; ${answer_Gbps} < ${prior_worst_result_Gbps}" | bc -l)
+	echo "worst_results = $worst_results, answer_Gbps = $answer_Gbps, prior_worst_result_Gbps = $prior_worst_result_Gbps"
+	if [ 1 -eq  $worst_results ]; then
+		echo "Setting new worst_result"
+		prior_worst_result_Gbps=$answer_Gbps
+	fi
+
+	if [ $k -eq 1 ]; then
 		sample_set_array=$answer_Gbps
 	else
 		sample_set_array=(${sample_set_array[@]} ${answer_Gbps})
@@ -118,8 +147,9 @@ echo "sum of the squares divided by the samples set size = $sum_squares_div_samp
 #
 std_dev=$(echo "scale=4;sqrt($sum_squares_div_sample_set_size)" | bc -l)
 
-echo "mean = $mean"
-echo "std_dev = $std_dev"
-
+echo "Best results = $prior_best_result_Gbps Gbps"
+echo "Worst results = $prior_worst_result_Gbps Gbps"
+echo "mean = $mean Gbps"
+echo "std_dev = $std_dev Gbps"
 
 
