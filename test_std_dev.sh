@@ -46,12 +46,22 @@ echo "${squared_distance_from_mean_array[*]}"
 total_sum_of_squares=0
 for (( i=0; i<${#squared_distance_from_mean_array[@]}; i++ )); do
 	total_sum_of_squares=$(echo "scale=4;${total_sum_of_squares} + ${squared_distance_from_mean_array[$i]}" | bc -l)
-	#total_sum_of_squares=$(echo "scale=4;$((${squared_distance_from_mean_array[$i]}))" | bc -l)
-	#a=$(echo "scale=4;${squared_distance_from_mean_array[$i]}+1" | bc -l)
-	#echo $a
 done
 
 echo "total_sum_of_squares = $total_sum_of_squares"
+echo "sample_set_size = $sample_set_size"
+#
+# Divide the total sum of the squares by the number of elements 
+#
+sum_squares_div_sample_set_size=$(echo "scale=4;${total_sum_of_squares} / ${sample_set_size}" | bc -l)
+echo "sum of the squares divided by the samples set size = $sum_squares_div_sample_set_size"
+
+#
+# Take square root to finally find standard deviation
+#
+std_dev=$(echo "scale=4;sqrt($sum_squares_div_sample_set_size)" | bc -l)
+echo "std_dev = $std_dev"
+
 
 
 exit

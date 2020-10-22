@@ -8,7 +8,7 @@ for i in "${message_size[@]}"
 do
 	for j in "${parallelism[@]}"
 	do
-		for k in {1..3}
+		for k in {1..1}
 		do
 			echo "bw_tcp -m $i -P $j 10.0.1.21:  " | tr -d '\n';bw_tcp -m $i -P $j 10.0.1.21 &> see2.txt
 			answer_MBps=$(awk '{print $2}' see2.txt)
@@ -25,6 +25,8 @@ do
 			if [ 1 -eq  $better_results ]; then
 				prior_best_result_Gbps=$answer_Gbps
 				best_result="bw_tcp -m $i -P $j 10.0.1.21:  $answer_MBps MBps ..... $answer_Gbps Gbps"
+				best_message_size=$i
+				best_parallelism=$j
 			fi
 		done
 	done
@@ -35,4 +37,89 @@ echo ""
 echo "==========================================="
 echo "Best results:  $best_result "
 echo ""
-			
+echo ""
+echo "Running 3 tests using message size = $best_message_size, parallelism = $best_parallelism:"
+echo "-----------------------------------------------------------------------------------------"
+
+sample_set_array=()
+
+for k in {1..3}
+do
+	echo "bw_tcp -m $best_message_size -P $best_parallelism 10.0.1.21:  " | tr -d '\n';bw_tcp -m $best_message_size -P $best_parallelism 10.0.1.21 &> see2.txt
+	answer_MBps=$(awk '{print $2}' see2.txt)
+	echo "$answer_MBps MBps ..... " | tr -d '\n'
+	answer_Gbps=$(echo "scale=4;${answer_MBps} * 8/10^3" | bc -l)
+	echo "$answer_Gbps Gbps"
+
+	if [ $k -eq 0 ]; then
+		sample_set_array=$answer_Gbps
+	else
+		sample_set_array=(${sample_set_array[@]} ${answer_Gbps})
+	fi
+done
+
+echo "sample_set_array = ${sample_set_array[*]}"
+echo "size of sample_set_array = ${#sample_set_array[@]}"
+
+
+total=0
+
+#
+# 1.  Find the mean
+#
+sample_set_size=${#sample_set_array[@]}
+echo "sample set size = ${#sample_set_array[@]}"
+
+for throughput_result in "${sample_set_array[@]}"
+do
+	total=$(echo "scale=4;${total}+${throughput_result}" | bc -l)
+done
+
+mean=$(echo "scale=4;${total}/${sample_set_size}" | bc -l)
+
+echo "mean = $mean"
+
+
+#
+# 2.  For each element in the sample set, find the square of its distance to the mean
+#
+squared_distance_from_mean_array=()
+
+for (( sample_set_element=0; sample_set_element<${#sample_set_array[@]}; sample_set_element++ )); do
+	squared_set_element=$(echo "scale=4;(${sample_set_array[$sample_set_element]}-${mean}) * (${sample_set_array[$sample_set_element]}-${mean})" | bc -l)
+	echo "$sample_set_element"
+	if [ $sample_set_element -eq 0 ]; then
+		squared_distance_from_mean_array=(${squared_set_element})
+	else
+		squared_distance_from_mean_array=(${squared_distance_from_mean_array[@]} ${squared_set_element})
+	fi
+done
+
+echo "${squared_distance_from_mean_array[*]}"
+
+#
+# Sum the values from step 2
+#
+total_sum_of_squares=0
+for (( i=0; i<${#squared_distance_from_mean_array[@]}; i++ )); do
+	total_sum_of_squares=$(echo "scale=4;${total_sum_of_squares} + ${squared_distance_from_mean_array[$i]}" | bc -l)
+done
+
+echo "total_sum_of_squares = $total_sum_of_squares"
+echo "sample_set_size = $sample_set_size"
+#
+# Divide the total sum of the squares by the number of elements 
+#
+sum_squares_div_sample_set_size=$(echo "scale=4;${total_sum_of_squares} / ${sample_set_size}" | bc -l)
+echo "sum of the squares divided by the samples set size = $sum_squares_div_sample_set_size"
+
+#
+# Take square root to finally find standard deviation
+#
+std_dev=$(echo "scale=4;sqrt($sum_squares_div_sample_set_size)" | bc -l)
+
+echo "mean = $mean"
+echo "std_dev = $std_dev"
+
+
+
