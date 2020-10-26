@@ -1,6 +1,8 @@
 #!/bin/bash
-parallelism=(1 8 16 32)
-message_size=(8192 16384 65536 4m)
+#parallelism=(1 8 16 32)
+#message_size=(8192 16384 65536 4m)
+parallelism=(1 8)
+message_size=(8192)
 prior_best_result_Gbps=0
 initialize_prior_best_result_Gbps=1
 
@@ -11,8 +13,13 @@ do
 		for k in {1..3}
 		do
 			#echo "bw_tcp -m $i -P $j 10.0.1.21:  " | tr -d '\n'
+			test_cfg_string="bw_tcp-m$i-P$j"
+
 			printf "%-10s%5s%3s%3d%s" "bw_tcp -m" $i "-P" $j "  10.0.1.21:  "
-			numactl --cpunodebind=0 --membind=0 -- bw_tcp -m $i -P $j 10.0.1.21 &> see2.txt
+
+			pbench-user-benchmark --config=$test_cfg_string -- eval `numactl --cpunodebind=0 --membind=0 -- bw_tcp -m $i -P $j 10.0.1.21 &> see2.txt`
+			#pbench-user-benchmark --config=$test_cfg_string -- eval "ls"
+
 			answer_MBps=$(awk '{print $2}' see2.txt)
 			#echo "$answer_MBps MBps ..... " | tr -d '\n'
 			printf "%12.4f%s" $answer_MBps " MBps ..... "
@@ -40,7 +47,7 @@ echo "==========================================================================
 echo "Best results:  $best_result "
 echo ""
 echo ""
-echo "Running 3 tests using message size = $best_message_size, parallelism = $best_parallelism:"
+echo "Running 5 tests using message size = $best_message_size, parallelism = $best_parallelism:"
 echo "-----------------------------------------------------------------------------------------"
 
 sample_set_array=()
@@ -52,7 +59,11 @@ better_results=0
 
 for k in {1..5}
 do
-	echo "bw_tcp -m $best_message_size -P $best_parallelism 10.0.1.21:  " | tr -d '\n';bw_tcp -m $best_message_size -P $best_parallelism 10.0.1.21 &> see2.txt
+	# echo "bw_tcp -m $best_message_size -P $best_parallelism 10.0.1.21:  " | tr -d '\n';bw_tcp -m $best_message_size -P $best_parallelism 10.0.1.21 &> see2.txt
+	echo "bw_tcp -m $best_message_size -P $best_parallelism 10.0.1.21:  " | tr -d '\n'
+	test_cfg_string="bw_tcp-m$best_message_size-P$best_parallelism_FINAL_VALIDATION_$k"
+	bw_tcp -m $best_message_size -P $best_parallelism 10.0.1.21 &> see2.txt
+	pbench-user-benchmark --config=$test_cfg_string -- eval `numactl --cpunodebind=0 --membind=0 -- bw_tcp -m $i -P $j 10.0.1.21 &> see2.txt`
 	answer_MBps=$(awk '{print $2}' see2.txt)
 	echo "$answer_MBps MBps ..... " | tr -d '\n'
 	answer_Gbps=$(echo "scale=4;${answer_MBps} * 8/10^3" | bc -l)
