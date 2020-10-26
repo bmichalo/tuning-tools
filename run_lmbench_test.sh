@@ -1,8 +1,6 @@
 #!/bin/bash
-#parallelism=(1 8 16 32)
-#message_size=(8192 16384 65536 4m)
-parallelism=(1 8)
-message_size=(8192)
+parallelism=(1 8 16 32)
+message_size=(8192 16384 65536 4m)
 prior_best_result_Gbps=0
 initialize_prior_best_result_Gbps=1
 
