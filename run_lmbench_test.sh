@@ -11,7 +11,7 @@ do
 		for k in {1..3}
 		do
 			#echo "bw_tcp -m $i -P $j 10.0.1.21:  " | tr -d '\n'
-			printf "%-10s%5d%3s%3d%s" "bw_tcp -m" $i "-P" $j "  10.0.1.21:  "
+			printf "%-10s%5s%3s%3d%s" "bw_tcp -m" $i "-P" $j "  10.0.1.21:  "
 			numactl --cpunodebind=0 --membind=0 -- bw_tcp -m $i -P $j 10.0.1.21 &> see2.txt
 			answer_MBps=$(awk '{print $2}' see2.txt)
 			#echo "$answer_MBps MBps ..... " | tr -d '\n'
