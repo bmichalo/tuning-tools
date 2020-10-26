@@ -16,7 +16,7 @@ do
 			printf "%-10s%5s%3s%3d%s" "bw_tcp -m" $i "-P" $j "  10.0.1.21:  "
 
 			#pbench-user-benchmark --config=$test_cfg_string -- eval `numactl --cpunodebind=0 --membind=0 -- bw_tcp -m $i -P $j 10.0.1.21 &> see2.txt`
-			numactl --cpunodebind=0 --membind=0 -- bw_tcp -m $i -P $j 10.0.1.21 &> see2.txt
+			bw_tcp -m $i -P $j 10.0.1.21 &> see2.txt
 			answer_MBps=$(awk '{print $2}' see2.txt)
 			#echo "$answer_MBps MBps ..... " | tr -d '\n'
 			printf "%12.4f%s" $answer_MBps " MBps ..... "
@@ -27,7 +27,11 @@ do
 			if [ "$initialize_prior_best_result_Gbps" -eq 1 ]; then
 				prior_best_result_Gbps=$answer_Gbps
 				initialize_prior_best_result_Gbps=0
+				best_result="bw_tcp -m $i -P $j 10.0.1.21:  $answer_MBps MBps ..... $answer_Gbps Gbps"
+				best_message_size=$i
+				best_parallelism=$j
 			fi
+
 
 			better_results=$(echo "scale=4; ${answer_Gbps} > ${prior_best_result_Gbps}" | bc -l)
 			if [ 1 -eq  $better_results ]; then
@@ -54,14 +58,16 @@ prior_worst_result_Gbps=0
 worst_results=0
 better_results=0
 
-for k in {1..5}
+for k in {1..10}
 do
 	# echo "bw_tcp -m $best_message_size -P $best_parallelism 10.0.1.21:  " | tr -d '\n';bw_tcp -m $best_message_size -P $best_parallelism 10.0.1.21 &> see2.txt
 	echo "bw_tcp -m $best_message_size -P $best_parallelism 10.0.1.21:  " | tr -d '\n'
-	test_cfg_string="bw_tcp-m$best_message_size-P$best_parallelism-IntCoalescingEnabled-FINAL_VALIDATION-$k"
+	test_cfg_string="bw_tcp-m$best_message_size-P$best_parallelism-IntCoalescingEnabled-NoNumactlBinding-FINAL_VALIDATION-$k"
 	#bw_tcp -m $best_message_size -P $best_parallelism 10.0.1.21 &> see2.txt
-	pbench-user-benchmark --config=$test_cfg_string -- eval `numactl --cpunodebind=0 --membind=0 -- bw_tcp -m $best_message_size -P $best_parallelism 10.0.1.21 &> see2.txt`
-	answer_MBps=$(awk '{print $2}' see2.txt)
+	#pbench-user-benchmark --config=$test_cfg_string -- eval `numactl --cpunodebind=0 --membind=0 -- bw_tcp -m $best_message_size -P $best_parallelism 10.0.1.21 &> see2.txt`
+	pbench-user-benchmark --config=$test_cfg_string -- eval "bw_tcp -m $best_message_size -P $best_parallelism 10.0.1.21" | tee -i see2.txt
+	answer_MBps=$(cat see2.txt | head -2 | tail -1 | awk '{print $2}')
+	#answer_MBps=$(awk '{print $2}' see2.txt)
 	echo "$answer_MBps MBps ..... " | tr -d '\n'
 	answer_Gbps=$(echo "scale=4;${answer_MBps} * 8/10^3" | bc -l)
 	echo "$answer_Gbps Gbps"

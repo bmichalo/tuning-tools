@@ -1,1 +1,3 @@
-0.008192 17091.09 MB/sec
+Running eval bw_tcp -m 8192 -P 8 10.0.1.21 for iteration 1-default
+0.008192 13854.31 MB/sec
+Collecting system information
