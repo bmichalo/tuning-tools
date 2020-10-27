@@ -8,7 +8,7 @@ for i in "${message_size[@]}"
 do
 	for j in "${parallelism[@]}"
 	do
-		for k in {1..3}
+		for k in {1..5}
 		do
 			#echo "bw_tcp -m $i -P $j 10.0.1.21:  " | tr -d '\n'
 			test_cfg_string="bw_tcp-m$i-P$j-intCoalEnabled"
@@ -48,7 +48,7 @@ echo "==========================================================================
 echo "Best results:  $best_result "
 echo ""
 echo ""
-echo "Running 5 tests using message size = $best_message_size, parallelism = $best_parallelism:"
+echo "Running 10 tests using message size = $best_message_size, parallelism = $best_parallelism:"
 echo "-----------------------------------------------------------------------------------------"
 
 sample_set_array=()
