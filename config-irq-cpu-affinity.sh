@@ -21,6 +21,11 @@ array_cpu_list=($cpu_list)
 num_of_cpus=${#array_cpu_list[@]}
 echo "Number of CPUs = $num_of_cpus"
 
+max_num_combined_channels_iface1=`ethtool -l $iface1 | sed '6,6!d' | awk '{print $2}'`
+echo "max_num_combined_channels_iface1 = $max_num_combined_channels_iface1"
+
+
+
 #
 # Set network devices online
 #
@@ -28,7 +33,11 @@ echo "Enabling network devices"
 
 if [ -n "$iface1" ]; then
 	#ifup $iface1
-	num_of_channels=$num_of_cpus
+	if [[ $num_of_cpus -gt $max_num_combined_channels_iface1 ]]; then
+		num_of_channels=$max_num_combined_channels_iface1
+	else
+		num_of_channels=$num_of_cpus
+	fi
 	pci_address_iface1=`ethtool -i $iface1 | grep bus-info | sed 's/^[^:]*: //g'`
 	num_of_net_devices=1
 else
@@ -45,7 +54,6 @@ fi
 
 echo "Number of channels / interface = $num_of_channels"
 echo "PCIe address of network device 1:  $pci_address_iface1"
-echo "PCIe address of network device 2:  $pci_address_iface2"
 
 
 #
@@ -56,8 +64,8 @@ echo "Channel defintion for network device $iface1"
 ethtool -l $iface1
 
 
-
 if [ -n "$iface2" ]; then
+        echo "PCIe address of network device 2:  $pci_address_iface2"
 	ethtool -L $iface2 combined $num_of_channels
 	echo "Channel defintion for network device $iface2"
 	ethtool -l $iface2
@@ -67,9 +75,9 @@ tuna --socket=0 -q mlx5_comp\*
 echo "ens3f0 IRQ CPU affinity"
 #tuna --show_irqs | grep mlx5 | grep c4:00.0
 tuna --show_irqs | grep mlx5_comp | grep $pci_address_iface1 
-echo "ens3f1 IRQ CPU affinity"
+#echo "ens3f1 IRQ CPU affinity"
 #tuna --show_irqs | grep mlx5 | grep c4:00.1
-tuna --show_irqs | grep mlx5_comp | grep $pci_address_iface2
+#tuna --show_irqs | grep mlx5_comp | grep $pci_address_iface2
 
 systemctl stop irqbalance
 iptables -F
@@ -141,7 +149,7 @@ echo "size(array_cpu_list_iface1[@]) = ${#array_cpu_list_iface1[@]}"
 
 
 
-for (( i=0; i<${#array_cpu_list_iface1[@]}; i++ )); do
+for (( i=0; i<${num_of_channels}; i++ )); do
         irq=${array_irq_list_iface1[$i]}
         echo "${array_cpu_list_iface1[$i]}" > /proc/irq/$irq/smp_affinity_list
 	cpu_in_use_by_irq=`cat /proc/irq/$irq/smp_affinity_list`
@@ -180,60 +188,4 @@ if [ -n "$iface2" ]; then
 		#echo "IRQ = ${array_irq_list[$i]}" 
 	done
 fi
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-exit
-
-for (( i=0; i<${#array_irq_list[@]}; i++ )); do
-        irq=${array_irq_list[$i]}
-        #echo "${array_cpu_list[$i]}" > /proc/irq/$irq/smp_affinity_list
-	cpu_in_use_by_irq=`cat /proc/irq/$irq/smp_affinity_list`
-	echo "IRQ $irq uses CPU $cpu_in_use_by_irq"
-        #echo "IRQ = ${array_irq_list[$i]}" 
-done
-
-echo "Adjusting IRQ / CPU affinity for unique assignment pairings..." 
-
-for (( i=0; i<${#array_irq_list[@]}; i++ )); do
-        irq=${array_irq_list[$i]}
-        echo "${array_cpu_list[$i]}" > /proc/irq/$irq/smp_affinity_list
-	cpu_in_use_by_irq=`cat /proc/irq/$irq/smp_affinity_list`
-	echo "NEW: IRQ $irq uses CPU $cpu_in_use_by_irq"
-        #echo "IRQ = ${array_irq_list[$i]}" 
-done
-
-
 

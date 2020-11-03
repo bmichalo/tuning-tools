@@ -20,13 +20,14 @@ echo "sample_set_size=$sample_set_size"
 
 for k in $(eval echo "{1..$sample_set_size}")
 do
-	test_cfg_string="bw_tcp-m4m-P$parallelism-TEST-$k"
+	test_cfg_string="bw_tcp-m4m-P$parallelism-TEST-numactl_-C_0-15_64-79-membind_0-server_rxadaptoffusecrx2000rxframes65535$k"
 	echo "test_cfg_string = $test_cfg_string"
 
 	printf "%-10s%3d%s" "bw_tcp -m 4m -P" $parallelism "  10.0.1.21:  "
 
 	#pbench-user-benchmark --config=$test_cfg_string -- eval "numactl --cpunodebind=0 --membind=0 -- bw_tcp -m 4m -P $parallelism 10.0.1.21" | tee -i see2.txt
-	pbench-user-benchmark --config=$test_cfg_string -- eval "bw_tcp -m 4m -P $parallelism 10.0.1.21" | tee -i see2.txt
+	pbench-user-benchmark --config=$test_cfg_string -- eval "numactl -C 0-15,64-79 --membind=0 -- bw_tcp -m 4m -P $parallelism 10.0.1.21" | tee -i see2.txt
+	#pbench-user-benchmark --config=$test_cfg_string -- eval "bw_tcp -m 4m -P $parallelism 10.0.1.21" | tee -i see2.txt
 	answer_MBps=$(cat see2.txt | head -2 | tail -1 | awk '{print $2}')
 	printf "%12.4f%s" $answer_MBps " MBps ..... "
 	answer_Gbps=$(echo "scale=4;${answer_MBps} * 8/10^3" | bc -l)

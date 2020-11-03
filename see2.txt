@@ -1,0 +1,3 @@
+Running eval numactl -C 0-15,64-79 --membind=0 -- bw_tcp -m 4m -P 16 10.0.1.21 for iteration 1-default
+4.194304 18034.06 MB/sec
+Collecting system information
